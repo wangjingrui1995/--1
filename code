@@ -1,0 +1,114 @@
+部分程序
+%     Use:       基于遗传算法的三维三维货位优化
+%                输入变量（可修改量）：     TurnOver:每个货物的周转率
+%                                        Weight:每个货物的重量
+%                                        MAXGEN:遗传算法的遗传代数，视具体情况改变
+%                                         NumGoods:货物的个数
+%                             
+%                输出：                   trace:每一代的最优个体
+%                                        bestpop:每代最优染色体
+
+clc
+clearall
+closeall
+formatcompact
+ 
+%参数初始化
+[TurnOver,Weight,NIND,MAXGEN,GGAP,PC,PM,K,P ,Q ,...
+    TotalTray,NumGoods,L0,vx,vy,vz,w1,w2,w3] =initial();
+ 
+bestpop= [];    %每代最优的染色体
+ex= importdata('初始货位.txt');
+fori=1:size(ex,1)
+    plotcube(ex(i,:)+0.5,[1,1,1],[0,0,0],[1 1 11 1 1 1 1],1,1);
+    hold on
+end
+gridon
+title('优化前的货位分配情况')
+xlabel('排');
+ylabel('列');
+zlabel('层');
+ 
+%所有空货位的集合
+num=1;
+fori=1:K
+   for j=1:P
+       for k=1:Q
+           CHROM(num,:)=[i j k;];
+           num = num+1;
+       end
+   end
+end
+ 
+%种群初始化
+fori=1:NIND
+    temp = randperm(TotalTray);
+    chrom(i,:) = temp(1:NumGoods);
+end
+ 
+%计算目标函数和种群适应度
+[Fone,Ftwo,Fthree,fitval,fitness]= Objfun(chrom,TurnOver,Weight,CHROM,L0,vx,vy,vz,K,w1,w2,w3);
+ 
+%进化优化开始
+gen= 1;
+whilegen<MAXGEN
+    prob=fitness./sum(fitness);       %进行归一化操作
+    prob=cumsum(prob);                %累计求和
+   
+    selch=chrom(1:NIND*GGAP,:);          %子代
+   
+    %选择操作
+    for i=1:2:NIND*GGAP                     %选择操作
+        %--------寻找父代---------
+        sita=rand();
+        for j=1:NIND
+            if sita<=prob(j)
+                father=chrom(j,:);
+                break;
+            end
+        end
+        %--------寻找母代---------
+        sita=rand();
+        for j=1:NIND
+            if sita<=prob(j)
+                mother=chrom(j,:);
+                break;
+            end
+        end
+        %----------交叉操作--------------%
+        if rand()<PC
+            cutpoint =ceil(rand(1,2)*(NumGoods-3)+2);         %范围为[2,19];
+            spoint=min(cutpoint);               %初始交叉点
+            epoint=max(cutpoint);                 %终点交叉点
+            %进行交叉
+        end
+         %----------变异操作--------------%
+%          随机交换染色体上两个基因的位置
+        temp=[];temp=rand();
+        if temp<PM              %变异操作
+           
+        end
+    end
+   
+    %计算子代的目标函数和适应度
+    [Fone,Ftwo,Fthree,selfitval,selfitness] =Objfun(selch,TurnOver,Weight,CHROM,L0,vx,vy,vz,K,w1,w2,w3);
+   
+%     selfitness = selfitness/sum(selfitness);
+    %重插入操作，优秀保留政策
+   [chrom,fitval]=reins(chrom,selch,1,1,fitval,selfitval);        %重插入，越小越容易被选择，
+   
+    %记录
+    [minfitval index] = min(fitval);            %最小值
+    trace(gen)=minfitval;                       %记录每一代最小的适应度值
+    bestpop(gen,:)  = chrom(index,:);           %最优的染色体
+    gen=gen+1;
+   
+    fitness = 1./fitval;            %函数值越小，适应度越大
+end
+ 
+%   绘制解得变化图
+figure()
+plot(trace)
+gridon
+xlabel('遗传代数')
+ylabel('目标函数变化')
